@@ -97,6 +97,9 @@ class BotInitiation:
         tableStatus = tablesSearch[0]
         tables = tablesSearch[1]
 
+        # convert string array to int array
+        tableStatus = list(map(int, tableStatus))
+
         # display all table statuses
         print(tableStatus)
 
@@ -159,10 +162,24 @@ class BotInitiation:
 
         # wait until table restarts
         while whenStarted != 0:
-            time.sleep(20)
-            counterDivs = WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-            whenStarted = counterDivs.text
-            print(whenStarted)
+            try:
+                l = self.driver.find_element_by_css_selector("div[class*='clickable--3IFrf']")
+                l.click()
+                time.sleep(5)
+                counterDivs = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                whenStarted = counterDivs.text
+                print(whenStarted)
+            # NoSuchElementException thrown if not present
+            except NoSuchElementException:
+                time.sleep(20)
+                counterDivs = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                whenStarted = counterDivs.text
+                print(whenStarted)
+
+
+
 
         print("Table started")
         GameCount = WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
