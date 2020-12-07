@@ -14,11 +14,13 @@ from selenium.webdriver.support import expected_conditions
 import ClientViews.StaticVars as svBot
 
 class BotInitiation:
+    # constructor to install chromedriver
     def __init__(self):
         print("hellox")
         # make sure chrome browser is available
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
+    # Parse through iframes to get to the tables
     def initiateTables(self):
         parentIframe = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//iframe[contains(@src,'/game/baccarat-lobby-paris/frame')]")))
@@ -33,6 +35,76 @@ class BotInitiation:
         WebDriverWait(self.driver, 120).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".TableName--1Watn")))
         return self.driver.find_elements_by_css_selector("div[class*='TableName--1Watn']")
 
+
+    # Read potential tables to read their present gamecounts
+    def lookForTables(self, tableStatusParam, tablesParam):
+        tableStatus = tableStatusParam
+        tables = tablesParam
+
+        for idx, t in enumerate(tables):
+            print("outer")
+            b = self.driver.find_elements_by_css_selector("div[class*='TableName--1Watn']")
+            if (len(b) == 0):
+                b = self.initiateTables()
+            print(len(b))
+            for tls in b:
+                print("inner")
+                print(t)
+                print(tls.text)
+                if tls.text == t:
+                    # get overflown tables into view as they might not be initially clicable
+                    tls.location_once_scrolled_into_view
+                    tls.click()
+                    time.sleep(15)
+
+                    # get the count of hands played in this table
+                    counterDivs = WebDriverWait(self.driver, 60).until(
+                        EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                    tableStatus[idx] = counterDivs.text
+                    self.driver.back()
+                    time.sleep(20)
+                    break
+        return [tableStatus, tables]
+
+    # Loop through tables to select one
+    def loopTables(self, b, selectedTable):
+        for tlsS in b:
+            if tlsS.text == selectedTable:
+                tlsS.location_once_scrolled_into_view
+                tlsS.click()
+                time.sleep(25)
+                self.operateTable()
+                break
+
+    # Start operationg on the selected table
+    def operateTable(self):
+        counterDivs = WebDriverWait(self.driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+        print(counterDivs.text)
+
+        whenStarted = counterDivs.text
+
+        # wait until table restarts
+        while whenStarted != '0':
+            try:
+                l = self.driver.find_element_by_css_selector("div[class*='clickable--3IFrf']")
+                l.click()
+                time.sleep(5)
+                counterDivs = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                whenStarted = counterDivs.text
+                print(whenStarted)
+            # NoSuchElementException thrown if not present
+            except NoSuchElementException:
+                time.sleep(20)
+                counterDivs = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                whenStarted = counterDivs.text
+                print(whenStarted)
+            if whenStarted == '0':
+                break
+
+    # Master method
     def start(self):
         print("automation initiated")
 
@@ -113,79 +185,42 @@ class BotInitiation:
         b = self.initiateTables()
 
         # get into selected table
-        for tlsS in b:
-            if tlsS.text == selectedTable:
-                tlsS.location_once_scrolled_into_view
-                tlsS.click()
-                time.sleep(25)
-                self.operateTable()
-                break
-
-        # driver.close()
-        print("sample test case successfully completed")
-
-    def lookForTables(self, tableStatusParam, tablesParam):
-        tableStatus = tableStatusParam
-        tables = tablesParam
-
-        for idx, t in enumerate(tables):
-            print("outer")
-            b = self.driver.find_elements_by_css_selector("div[class*='TableName--1Watn']")
-            if (len(b) == 0):
-                b = self.initiateTables()
-            print(len(b))
-            for tls in b:
-                print("inner")
-                print(t)
-                print(tls.text)
-                if tls.text == t:
-                    # get overflown tables into view as they might not be initially clicable
-                    tls.location_once_scrolled_into_view
-                    tls.click()
-                    time.sleep(15)
-
-                    # get the count of hands played in this table
-                    counterDivs = WebDriverWait(self.driver, 60).until(
-                        EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-                    tableStatus[idx] = counterDivs.text
-                    self.driver.back()
-                    time.sleep(20)
-                    break
-        return [tableStatus, tables]
-
-    def operateTable(self):
-        counterDivs = WebDriverWait(self.driver, 60).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-        print(counterDivs.text)
-
-        whenStarted = counterDivs.text
-
-        # wait until table restarts
-        while whenStarted != 0:
-            try:
-                l = self.driver.find_element_by_css_selector("div[class*='clickable--3IFrf']")
-                l.click()
-                time.sleep(5)
-                counterDivs = WebDriverWait(self.driver, 60).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-                whenStarted = counterDivs.text
-                print(whenStarted)
-            # NoSuchElementException thrown if not present
-            except NoSuchElementException:
-                time.sleep(20)
-                counterDivs = WebDriverWait(self.driver, 60).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-                whenStarted = counterDivs.text
-                print(whenStarted)
-
-
-
+        self.loopTables(b, selectedTable)
+        print("Successfully reached beginning of table.")
 
         print("Table started")
-        GameCount = WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-        playerWinCount = WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
-        bankerWinCount = WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
+        GameCount = WebDriverWait(self.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+        playerWinCount = WebDriverWait(self.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
+        bankerWinCount = WebDriverWait(self.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
 
-        print("initial player count: "+playerWinCount)
-        print("initial banker count: "+bankerWinCount)
+        print("initial game count: " + GameCount.text)
+        print("initial banker count: " + bankerWinCount.text)
+        print("initial player count: " + playerWinCount.text)
+
+        # Here some notations will be used. they are as follows:
+        # 1: Player
+        # 2: Banker
+        # 10: Yes
+        # 20: No
+
+        # set tracking values of game, player and banker
+        lastGame = int(GameCount.text)
+        lastPlayer = int(bankerWinCount.text)
+        lastBanker = int(playerWinCount.text)
+        qWinner = []
+        qPrediction = [0]
+        while True:
+            print("hello")
+            state = WebDriverWait(self.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+            latest = int(state.text)
+            if (last == latest):
+                continue
+            else:
+                last = int(latest)
+
+
 
