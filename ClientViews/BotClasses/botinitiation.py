@@ -203,24 +203,84 @@ class BotInitiation:
         # Here some notations will be used. they are as follows:
         # 1: Player
         # 2: Banker
-        # 10: Yes
-        # 20: No
+        # 11: Yes
+        # 22: No
+        # 3: Result doesn't exist
+        # 4: Draw
 
         # set tracking values of game, player and banker
         lastGame = int(GameCount.text)
         lastPlayer = int(bankerWinCount.text)
         lastBanker = int(playerWinCount.text)
+
+        # queue to keep track of winners
         qWinner = []
+
+        # queue to keep track of prediction results
         qPrediction = [0]
+        prediction = 100
+
+        # infinite loop to monitor the table
         while True:
             print("hello")
-            state = WebDriverWait(self.driver, 60).until(
+
+            # get total game situation
+            stateGame = WebDriverWait(self.driver, 60).until(
                 EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-            latest = int(state.text)
-            if (last == latest):
+            latestGame = int(stateGame.text)
+
+            # get banker situation
+            statePlayer = WebDriverWait(self.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
+            latestPlayer = int(statePlayer.text)
+
+            # get banker situation
+            stateBanker = WebDriverWait(self.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
+            latestBanker = int(stateBanker.text)
+
+
+            # No new game played
+            if (lastGame == latestGame):
                 continue
+            # New game played, result analysis
             else:
-                last = int(latest)
+                # update latest game tracker
+                lastGame = latestGame
+
+                # player won last game, now what do i do?
+                if lastPlayer < latestPlayer:
+                    qWinner.append(1)
+                    lastPlayer = latestPlayer
+                    if prediction == 100:
+                        prediction = 2
+                    else:
+                        if prediction == 1:
+                            prediction = 2
+                            qPrediction.append(11)
+                        elif prediction == 2:
+                            prediction = 2
+                            qPrediction.append(22)
+
+                # Banker won last game, now what do I do?
+                elif lastBanker < latestBanker:
+                    qWinner.append(2)
+                    lastBanker = latestBanker
+                    if prediction == 100:
+                        prediction = 1
+                    else:
+                        if prediction == 2:
+                            prediction = 1
+                            qPrediction.append(11)
+                        elif prediction == 1:
+                            prediction = 1
+                            qPrediction.append(22)
+                print(qWinner)
+                print(qPrediction)
+
+
+
+
 
 
 
