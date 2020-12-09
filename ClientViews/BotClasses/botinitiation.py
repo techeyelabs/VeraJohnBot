@@ -201,10 +201,10 @@ class BotInitiation:
         print("initial player count: " + playerWinCount.text)
 
         # Here some notations will be used. they are as follows:
-        # 1: Player
-        # 2: Banker
-        # 11: Yes
-        # 22: No
+        # P: Player
+        # B: Banker
+        # Y: Yes
+        # N: No
         # 3: Result doesn't exist
         # 4: Draw
 
@@ -217,69 +217,89 @@ class BotInitiation:
         qWinner = []
 
         # queue to keep track of prediction results
-        qPrediction = [0]
+        qPrediction = ['NONE']
         prediction = 100
+
+        iteration = 0
+
+        # Yes/No track
+        Y = 0
+        N = 0
 
         # infinite loop to monitor the table
         while True:
-            print("hello")
+            time.sleep(1)
+            # ignored exception array
+            ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
 
             # get total game situation
-            stateGame = WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+            stateGame = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+
             latestGame = int(stateGame.text)
 
-            # get banker situation
-            statePlayer = WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
+            # get player situation
+            statePlayer = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
             latestPlayer = int(statePlayer.text)
 
             # get banker situation
-            stateBanker = WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
+            stateBanker = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
             latestBanker = int(stateBanker.text)
-
 
             # No new game played
             if (lastGame == latestGame):
                 continue
             # New game played, result analysis
             else:
+                iteration += 1
+
                 # update latest game tracker
                 lastGame = latestGame
 
                 # player won last game, now what do i do?
                 if lastPlayer < latestPlayer:
-                    qWinner.append(1)
+                    qWinner.append('P')
                     lastPlayer = latestPlayer
                     if prediction == 100:
-                        prediction = 2
+                        prediction = 'B'
                     else:
-                        if prediction == 1:
-                            prediction = 2
-                            qPrediction.append(11)
-                        elif prediction == 2:
-                            prediction = 2
-                            qPrediction.append(22)
+                        if prediction == 'P':
+                            prediction = 'B'
+                            qPrediction.append('YES')
+                            if iteration >= 5:
+                                Y += 1
+                                if qPrediction[len(qPrediction) - 2] == 'YES':
+                                    N = 0
+                        elif prediction == 'B':
+                            prediction = 'B'
+                            qPrediction.append('NO')
+                            if iteration >= 5:
+                                N += 1
 
                 # Banker won last game, now what do I do?
                 elif lastBanker < latestBanker:
-                    qWinner.append(2)
+                    qWinner.append('B')
                     lastBanker = latestBanker
                     if prediction == 100:
-                        prediction = 1
+                        prediction = 'P'
                     else:
-                        if prediction == 2:
-                            prediction = 1
-                            qPrediction.append(11)
-                        elif prediction == 1:
-                            prediction = 1
-                            qPrediction.append(22)
-                print(qWinner)
-                print(qPrediction)
+                        if prediction == 'B':
+                            prediction = 'P'
+                            qPrediction.append('YES')
+                        elif prediction == 'P':
+                            prediction = 'P'
+                            qPrediction.append('NO')
 
 
 
+
+            print("iteration:")
+            print(iteration)
+            print(qWinner)
+            print(qPrediction)
+
+
+    def bet(self):
+        print("bet started")
 
 
 
