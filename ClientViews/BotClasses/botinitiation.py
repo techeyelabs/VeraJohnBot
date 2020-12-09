@@ -20,6 +20,11 @@ class BotInitiation:
         # make sure chrome browser is available
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
+        # Betting set
+        multiple = 1
+        self.setx = [1 * multiple, 2 * multiple, 3 * multiple, 5 * multiple, 7 * multiple, 10 * multiple,
+               15 * multiple, 22 * multiple, 33 * multiple, 48 * multiple, 72 * multiple]
+
     # Parse through iframes to get to the tables
     def initiateTables(self):
         parentIframe = WebDriverWait(self.driver, 10).until(
@@ -288,6 +293,8 @@ class BotInitiation:
                         elif prediction == 'P':
                             prediction = 'P'
                             qPrediction.append('NO')
+            if N >= 4:
+                self.bet(prediction)
 
 
 
@@ -298,8 +305,27 @@ class BotInitiation:
             print(qPrediction)
 
 
-    def bet(self):
+    def bet(self, prediction):
         print("bet started")
+        print(prediction + " will win this time!")
+
+        # Get betting amount and push it at the back of the queue
+        bet = self.setx.pop(0)
+        self.setx.append(bet)
+        print("betting $" + bet)
+
+        # Get the two divs that contain player and banker portal
+        candidateDivs = WebDriverWait(self.driver, 120).until(EC.presence_of_elements_located((By.XPATH, "//div[contains(@data-type,'title--3u2Hb')]")))
+        for i in candidateDivs:
+            if prediction == 'P':
+                if i.text == 'プレイヤー':
+                    i.click()
+                    break
+            elif prediction == 'B':
+                if i.text == 'バンカー':
+                    i.click()
+                    break
+
 
 
 
