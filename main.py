@@ -10,5 +10,7 @@ print(sv.StaticVars.userId)
 
 userid = sv.StaticVars.userId
 userpass = sv.StaticVars.userPass
-sysLoginWindow = bw.create()
+if sv.StaticVars.isAuthenticated == True:
+    sysLoginWindow = bw.create()
+
 

@@ -1,5 +1,7 @@
 from ClientViews.GuiWidgets.Widget import *
+import ClientViews.StaticVars as sv
 import tkinter as tk
+import requests as rq
 import ClientViews.StaticVars as svlogin
 class SystemLogin(tk.Frame):
     def __init__(self, master=None):
@@ -103,7 +105,20 @@ class SystemLogin(tk.Frame):
         userpassword = self.systemUserPassInput.get()
         svlogin.StaticVars.userId = userid
         svlogin.StaticVars.userPass = userpassword
-        self.master.destroy()
+
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        data = [
+            {
+                'url': sv.StaticVars.clientAuthenticationApi,
+                'params': {'name': 'aaa', 'password': 'abb12345', 'token': 'LDiDPgxFCxXOesKGm4gxc0iIseM24P'},
+                'method': 'get',
+            }
+        ]
+
+        clientAuthentication = rq.get(sv.StaticVars.clientAuthenticationApi, json=data, headers=headers)
+        print(clientAuthentication.json())
+
+        # self.master.destroy()
 
 
 

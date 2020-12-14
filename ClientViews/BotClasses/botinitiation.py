@@ -293,12 +293,12 @@ class BotInitiation:
                         elif prediction == 'P':
                             prediction = 'P'
                             qPrediction.append('NO')
-            if N >= 4:
-                self.bet(prediction)
 
+            # start betting when value of N reaches 4
+            # if N >= 1:
+            self.bet(prediction)
 
-
-
+            # Dummy prints to monitor bet activities
             print("iteration:")
             print(iteration)
             print(qWinner)
@@ -312,18 +312,28 @@ class BotInitiation:
         # Get betting amount and push it at the back of the queue
         bet = self.setx.pop(0)
         self.setx.append(bet)
-        print("betting $" + bet)
+        print("betting $" + str(bet))
 
         # Get the two divs that contain player and banker portal
-        candidateDivs = WebDriverWait(self.driver, 120).until(EC.presence_of_elements_located((By.XPATH, "//div[contains(@data-type,'title--3u2Hb')]")))
+        # candidateDivs = WebDriverWait(self.driver, 120).until(EC.presence_of_elements_located((By.XPATH, "//div[contains(@class,'title--3u2Hb')]")))
+        candidateDivs = self.driver.find_elements_by_css_selector("div[class*='title--3u2Hb']")
         for i in candidateDivs:
+            print(i.text)
             if prediction == 'P':
                 if i.text == 'プレイヤー':
-                    i.click()
+                    # i.click()
+                    self.driver.execute_script("arguments[0].click();", i)
+                    # while True:
+                    #     x = self.driver.find_elements_by_css_selector(".ui-tooltip")
+                    #     print("プレイヤー is my cand")
                     break
             elif prediction == 'B':
                 if i.text == 'バンカー':
-                    i.click()
+                    # i.click()
+                    self.driver.execute_script("arguments[0].click();", i)
+                    # while True:
+                    #     x = self.driver.find_elements_by_css_selector(".ui-tooltip")
+                    #     print("バンカー is my cand")
                     break
 
 
