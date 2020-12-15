@@ -1,5 +1,4 @@
 from ClientViews.GuiWidgets.Widget import *
-import ClientViews.StaticVars as sv
 import tkinter as tk
 import requests as rq
 import ClientViews.StaticVars as svlogin
@@ -106,17 +105,26 @@ class SystemLogin(tk.Frame):
         svlogin.StaticVars.userId = userid
         svlogin.StaticVars.userPass = userpassword
 
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        data = [
-            {
-                'url': sv.StaticVars.clientAuthenticationApi,
-                'params': {'name': 'aaa', 'password': 'abb12345', 'token': 'LDiDPgxFCxXOesKGm4gxc0iIseM24P'},
-                'method': 'get',
+        # data packet for authentication api call
+        data = {
+                'name': svlogin.StaticVars.userId,
+                'password': svlogin.StaticVars.userPass,
+                'token': 'LDiDPgxFCxXOesKGm4gxc0iIseM24P'
             }
-        ]
 
-        clientAuthentication = rq.get(sv.StaticVars.clientAuthenticationApi, json=data, headers=headers)
-        print(clientAuthentication.json())
+        # api call
+        clientAuthentication = rq.get(svlogin.StaticVars.clientAuthenticationApi, data)
+        result = clientAuthentication.json()
+
+        # User authenticated
+        if result['status'] == 200:
+            print("user confirmed")
+            svlogin.StaticVars.isAuthenticated = True
+            self.master.destroy()
+        # User unauthorized
+        else:
+            print("user denied")
+            svlogin.StaticVars.isAuthenticated = False
 
         # self.master.destroy()
 
