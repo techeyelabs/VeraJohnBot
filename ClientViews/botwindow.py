@@ -111,11 +111,13 @@ class BotBegin(tk.Frame):
     def goToVeraJohn(self):
         print(svlogin.StaticVars.verajohnUserId + "this")
         while True:
-            break
-            # print("not yet")
-            # if svlogin.StaticVars.verajohnUserId != 'unique user id' and svlogin.StaticVars.verajohnUserPass != 'Secure':
-                # bot = bt.BotInitiation()
-                # bot.start()
+            # break
+            print("not yet")
+            if svlogin.StaticVars.verajohnUserId != 'unique user id' and svlogin.StaticVars.verajohnUserPass != 'Secure':
+                bot = bt.BotInitiation()
+                result = bot.start()
+                while result is False or True:
+                    result = bot.start()
 
 
 

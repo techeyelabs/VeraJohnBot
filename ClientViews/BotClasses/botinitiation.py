@@ -8,15 +8,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
 
 # programmer defined libraries
 import ClientViews.StaticVars as svBot
 
 class BotInitiation:
+    # chips array
+    chipsArray = [10000, 1000, 500, 100, 25, 5, 1]
+
     # constructor to install chromedriver
     def __init__(self):
-        print("hellox")
         # make sure chrome browser is available
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
@@ -27,18 +30,24 @@ class BotInitiation:
 
     # Parse through iframes to get to the tables
     def initiateTables(self):
-        parentIframe = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//iframe[contains(@src,'/game/baccarat-lobby-paris/frame')]")))
-        self.driver.switch_to.frame(parentIframe)
-        childIframe = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//iframe[contains(@name,'innergame')]")))
-        self.driver.switch_to.frame(childIframe)
-        grandchildIframe = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//iframe[contains(@name,'EVO_GAME')]")))
-        self.driver.switch_to.frame(grandchildIframe)
+        try:
+            parentIframe = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, svBot.StaticVars.IFRAME_1)))
+            self.driver.switch_to.frame(parentIframe)
+            childIframe = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, svBot.StaticVars.IFRAME_2)))
+            self.driver.switch_to.frame(childIframe)
+            grandchildIframe = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, svBot.StaticVars.IFRAME_3)))
+            self.driver.switch_to.frame(grandchildIframe)
 
-        WebDriverWait(self.driver, 120).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".TableName--1Watn")))
-        return self.driver.find_elements_by_css_selector("div[class*='TableName--1Watn']")
+            WebDriverWait(self.driver, 120).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".TableName--2WO05")))
+            return self.driver.find_elements_by_css_selector(svBot.StaticVars.TABLES)
+        except:
+            return False
+
 
 
     # Read potential tables to read their present gamecounts
@@ -47,44 +56,55 @@ class BotInitiation:
         tables = tablesParam
 
         for idx, t in enumerate(tables):
-            print("outer")
-            b = self.driver.find_elements_by_css_selector("div[class*='TableName--1Watn']")
+            try:
+                b = self.driver.find_elements_by_css_selector(svBot.StaticVars.TABLES)
+            except:
+                return False
             if (len(b) == 0):
-                b = self.initiateTables()
-            print(len(b))
-            for tls in b:
-                print("inner")
-                print(t)
-                print(tls.text)
-                if tls.text == t:
-                    # get overflown tables into view as they might not be initially clicable
-                    tls.location_once_scrolled_into_view
-                    tls.click()
-                    time.sleep(15)
+                b = False
+                while (b == False):
+                    b = self.initiateTables()
+            try:
+                for tls in b:
+                    if tls.text == t:
+                        # get overflown tables into view as they might not be initially clicable
+                        tls.location_once_scrolled_into_view
+                        tls.click()
+                        time.sleep(15)
 
-                    # get the count of hands played in this table
-                    counterDivs = WebDriverWait(self.driver, 60).until(
-                        EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-                    tableStatus[idx] = counterDivs.text
-                    self.driver.back()
-                    time.sleep(20)
-                    break
+                        # get the count of hands played in this table
+                        counterDivs = WebDriverWait(self.driver, 60).until(
+                            EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
+                        tableStatus[idx] = counterDivs.text
+                        # if int(counterDivs.text) >= 60:
+                        #     return [tableStatus, tables]
+                        print(tableStatus)
+                        self.driver.back()
+                        time.sleep(20)
+                        break
+            except:
+                return False
         return [tableStatus, tables]
 
     # Loop through tables to select one
     def loopTables(self, b, selectedTable):
-        for tlsS in b:
-            if tlsS.text == selectedTable:
-                tlsS.location_once_scrolled_into_view
-                tlsS.click()
-                time.sleep(25)
-                self.operateTable()
-                break
+        try:
+            for tlsS in b:
+                if tlsS.text == selectedTable:
+                    tlsS.location_once_scrolled_into_view
+                    tlsS.click()
+                    time.sleep(25)
+                    self.operateTable()
+                    break
+            return True
+        except:
+            return False
 
     # Start operationg on the selected table
     def operateTable(self):
+        # stop waiting for beginnign of table (remove later)
         counterDivs = WebDriverWait(self.driver, 60).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+            EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
         print(counterDivs.text)
 
         whenStarted = counterDivs.text
@@ -96,71 +116,33 @@ class BotInitiation:
                 l.click()
                 time.sleep(5)
                 counterDivs = WebDriverWait(self.driver, 60).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                    EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
                 whenStarted = counterDivs.text
                 print(whenStarted)
             # NoSuchElementException thrown if not present
             except NoSuchElementException:
                 time.sleep(20)
                 counterDivs = WebDriverWait(self.driver, 60).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
+                    EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
                 whenStarted = counterDivs.text
                 print(whenStarted)
             if whenStarted == '0':
                 break
 
-    # Master method
-    def start(self):
-        print("automation initiated")
-
-        # maximize browser window
-        # driver.maximize_window()
-
-        # initialize verajohn web
-        okFlag = 0
-        while okFlag == 0:
-            try:
-                l = self.driver.find_element_by_css_selector("input[class*='form-text required'][id='signin-mail']")
-                print("found")
-                okFlag = 1
-            # NoSuchElementException thrown if not present
-            except NoSuchElementException:
-                print("looking")
-                self.driver.get("https://verajohn.com/ja")
-
-
-
-        time.sleep(10)
-        # grab username and password field
-        username = self.driver.find_element_by_css_selector("input[class*='form-text required'][id='signin-mail']")
-        password = self.driver.find_element_by_css_selector("input[class*='form-text required'][id='signin-pass']")
-
-
-        # Flood username and password field with values from static class
-        userid = svBot.StaticVars.userId
-        userpass = svBot.StaticVars.userPass
-        time.sleep(5)
-        username.send_keys("coginc2009@gmail.com")
-        password.send_keys("!rQzzz2JHEDdP9G")
-        time.sleep(5)
-
-        # Press submit
-        submitbtn = self.driver.find_element_by_css_selector(".button[class*='button form-submit'][id='edit-submit-signin']")
-        submitbtn.send_keys(Keys.ENTER)
-
-        time.sleep(3)
-        # driver.get("https://www.verajohn.com/ja/myaccount/overview")
-        # elem = driver.find_element_by_xpath('//span[@class="cta_button cta_primary cookie-disclaimer-close"]').click()
-        time.sleep(3)
-        self.driver.get("https://www.verajohn.com/ja/game/baccarat-lobby-paris")
-        # driver.get("https://www.verajohn.com/ja/game/baccarat-lobby-paris/frame")
-        time.sleep(13)
-
+    def bettingMethod(self):
+        # max try counter
+        counter = 0
         b = self.initiateTables()
+        while b is False:
+            if counter >= svBot.StaticVars.maxTry:
+                return False
+            b = self.initiateTables()
+            counter += 1
 
 
+        # initiated tables display
         print(len(b))
-        # return
+
         tableStatus = [0, 0, 0, 0, 0]
         tables = [
             "スピードバカラ A",
@@ -170,7 +152,15 @@ class BotInitiation:
             "バカラ C"
         ]
 
-        tablesSearch = self.lookForTables(tableStatus, tables)
+        # max try counter
+        counter = 0
+        tablesSearch = False
+        while tablesSearch is False:
+            if counter >= svBot.StaticVars.maxTry:
+                return False
+            tablesSearch = self.lookForTables(tableStatus, tables)
+            counter += 1
+
         tableStatus = tablesSearch[0]
         tables = tablesSearch[1]
 
@@ -178,6 +168,7 @@ class BotInitiation:
         tableStatus = list(map(int, tableStatus))
 
         # display all table statuses
+        print("tables")
         print(tableStatus)
 
         # get to table list again
@@ -187,19 +178,44 @@ class BotInitiation:
         selectedTable = tables[maxVal]
 
         # walk through iframes to get to tables again
-        b = self.initiateTables()
+        # max try counter
+        counter = 0
+        b = False
+        while (b is False):
+            if counter >= svBot.StaticVars.maxTry:
+                return False
+            b = self.initiateTables()
+            counter += 1
 
         # get into selected table
-        self.loopTables(b, selectedTable)
+        counter = 0  # max try counter
+        targetTable = False
+        while targetTable is False:
+            if counter >= svBot.StaticVars.maxTry:
+                return False
+            targetTable = self.loopTables(b, selectedTable)
+            counter += 1
+
         print("Successfully reached beginning of table.")
 
         print("Table started")
-        GameCount = WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-        playerWinCount = WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
-        bankerWinCount = WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
+        # get game, player, banker count
+        counter = 0  # max try counter
+        threeCounts = False
+        while threeCounts is False:
+            if counter >= svBot.StaticVars.maxTry:
+                return False
+            threeCounts = True
+            try:
+                GameCount = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
+                playerWinCount = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, svBot.StaticVars.PLAYERWINS)))
+                bankerWinCount = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, svBot.StaticVars.BANKERWINS)))
+            except:
+                threeCounts = False
+                counter += 1
 
         print("initial game count: " + GameCount.text)
         print("initial banker count: " + bankerWinCount.text)
@@ -231,6 +247,15 @@ class BotInitiation:
         Y = 0
         N = 0
 
+        # waiting games track
+        waitingForGame = 0
+
+        # bet start flag
+        betFlag = False
+
+        # consecutive win track
+        consWins = 0
+
         # infinite loop to monitor the table
         while True:
             time.sleep(1)
@@ -238,17 +263,50 @@ class BotInitiation:
             ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
 
             # get total game situation
-            stateGame = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'gameCount')]")))
-
-            latestGame = int(stateGame.text)
+            counter = 0  # max try counter
+            k = False
+            while k is False:
+                if counter >= svBot.StaticVars.maxTry:
+                    return False
+                k = True
+                try:
+                    stateGame = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(
+                        EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
+                    latestGame = int(stateGame.text)
+                except StaleElementReferenceException:
+                    k = False
+                    counter += 1
 
             # get player situation
-            statePlayer = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'playerWins')]")))
-            latestPlayer = int(statePlayer.text)
+            counter = 0  # max try counter
+            j = False
+            while j is False:
+                if counter >= svBot.StaticVars.maxTry:
+                    return False
+                j = True
+                try:
+                    statePlayer = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(
+                        EC.presence_of_element_located((By.XPATH, svBot.StaticVars.PLAYERWINS)))
+                    latestPlayer = int(statePlayer.text)
+                except StaleElementReferenceException:
+                    j = False
+                    counter += 1
 
             # get banker situation
-            stateBanker = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.XPATH, "//div[contains(@data-type,'bankerWins')]")))
-            latestBanker = int(stateBanker.text)
+            counter = 0  # max try counter
+            i = False
+            while i is False:
+                if counter >= svBot.StaticVars.maxTry:
+                    return False
+                i = True
+                try:
+                    stateBanker = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(
+                        EC.presence_of_element_located((By.XPATH, svBot.StaticVars.BANKERWINS)))
+                    latestBanker = int(stateBanker.text)
+                except StaleElementReferenceException:
+                    i = False
+                    counter += 1
+
 
             # No new game played
             if (lastGame == latestGame):
@@ -263,6 +321,7 @@ class BotInitiation:
                 # player won last game, now what do i do?
                 if lastPlayer < latestPlayer:
                     qWinner.append('P')
+                    print(qWinner)
                     lastPlayer = latestPlayer
                     if prediction == 100:
                         prediction = 'B'
@@ -273,7 +332,10 @@ class BotInitiation:
                             if iteration >= 5:
                                 Y += 1
                                 if qPrediction[len(qPrediction) - 2] == 'YES':
-                                    N = 0
+                                    if betFlag is True:
+                                        return False
+                                    else:
+                                        N = 0
                         elif prediction == 'B':
                             prediction = 'B'
                             qPrediction.append('NO')
@@ -283,6 +345,7 @@ class BotInitiation:
                 # Banker won last game, now what do I do?
                 elif lastBanker < latestBanker:
                     qWinner.append('B')
+                    print(qWinner)
                     lastBanker = latestBanker
                     if prediction == 100:
                         prediction = 'P'
@@ -290,52 +353,198 @@ class BotInitiation:
                         if prediction == 'B':
                             prediction = 'P'
                             qPrediction.append('YES')
+                            if iteration >= 5:
+                                Y += 1
+                                if qPrediction[len(qPrediction) - 2] == 'YES':
+                                    if betFlag is True:
+                                        return False
+                                    else:
+                                        N = 0
                         elif prediction == 'P':
                             prediction = 'P'
                             qPrediction.append('NO')
+                            if iteration >= 5:
+                                N += 1
 
             # start betting when value of N reaches 4
-            # if N >= 1:
-            self.bet(prediction)
-
+            # if N >= 4:
             # Dummy prints to monitor bet activities
             print("iteration:")
             print(iteration)
             print(qWinner)
             print(qPrediction)
+            # Temporary N value reduction
+            print("value of N")
+            print(N)
+            if N >= 1:
+                betFlag = True
+                betSuccess = self.bet(prediction)
+                if betSuccess is False:
+                    return False
+            else:
+                waitingForGame += 1
+            if waitingForGame == svBot.StaticVars.maxCount:
+                return False
+
+    # Master method
+    def start(self):
+        print("automation initiated")
+
+        try:
+            l = self.driver.find_element_by_css_selector(svBot.StaticVars.BALANCEDIV)
+        except:
+            # maximize browser window
+            # driver.maximize_window()
+
+            # initialize verajohn web
+            okFlag = 0
+            while okFlag == 0:
+                try:
+                    l = self.driver.find_element_by_css_selector(svBot.StaticVars.MAILINPUT)
+                    print("found")
+                    okFlag = 1
+                # NoSuchElementException thrown if not present
+                except NoSuchElementException:
+                    print("looking")
+                    self.driver.get(svBot.StaticVars.home)
+
+            # grab username and password field
+            try:
+                username = self.driver.find_element_by_css_selector(svBot.StaticVars.MAILINPUT)
+                password = self.driver.find_element_by_css_selector(svBot.StaticVars.PASSINPUT)
+            except NoSuchElementException:
+                # login fields grabing failed
+                return False
+
+
+            # Flood username and password field with values from static class
+            userid = svBot.StaticVars.userId
+            userpass = svBot.StaticVars.userPass
+
+            # Account without balance
+            # username.send_keys(svBot.StaticVars.userIdWithoutBalance)
+            # password.send_keys(svBot.StaticVars.userPassWithoutBalance)
+
+            # Account with balance
+            username.send_keys(svBot.StaticVars.userIdWithBalance)
+            password.send_keys(svBot.StaticVars.userPassWithBalance)
+            time.sleep(2)
+
+            try:
+                # Press submit
+                submitbtn = self.driver.find_element_by_css_selector(svBot.StaticVars.LOGINBUTTON)
+                submitbtn.send_keys(Keys.ENTER)
+            except NoSuchElementException:
+                # login fields grabing failed
+                return False
+        l = self.driver.find_element_by_css_selector(svBot.StaticVars.BALANCEDIV)
+        print(l.text)
+        # driver.get("https://www.verajohn.com/ja/myaccount/overview")
+        # elem = driver.find_element_by_xpath('//span[@class="cta_button cta_primary cookie-disclaimer-close"]').click()
+        time.sleep(3)
+        try:
+            self.driver.get(svBot.StaticVars.lobby)
+        except:
+            return False
+
+        isBetting = self.bettingMethod()
+        if isBetting is False:
+            return False
+        else:
+            return True
+
 
 
     def bet(self, prediction):
-        print("bet started")
-        print(prediction + " will win this time!")
+        # print("bet started")
+        # print(prediction + " will win this time!")
 
         # Get betting amount and push it at the back of the queue
         bet = self.setx.pop(0)
+        bettocalculate = bet
         self.setx.append(bet)
         print("betting $" + str(bet))
+        print (self.chipsArray)
+        chipcount = [0, 0, 0, 0, 0, 0, 0]
+        index = 0
+        while index < 7:
+            if self.chipsArray[index] <= bettocalculate:
+                bettocalculate -= self.chipsArray[index]
+                chipcount[index] = chipcount[index] + 1
+                if self.chipsArray[index] > bettocalculate:
+                    index += 1
+                else:
+                    continue
+            index += 1
+
+
+        # candidateDivs = WebDriverWait(self.driver, 120).until(EC.presence_of_elements_located((By.XPATH, "//div[contains(@class,'title--3u2Hb')]")))
+
+        # grab betting window indicator
+        signalDiv = WebDriverWait(self.driver, 120).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'status--3gU3H green--365dR landscape--WzE3k animate--2TXsg desktop-theme--T-jLf')]")))
 
         # Get the two divs that contain player and banker portal
-        # candidateDivs = WebDriverWait(self.driver, 120).until(EC.presence_of_elements_located((By.XPATH, "//div[contains(@class,'title--3u2Hb')]")))
-        candidateDivs = self.driver.find_elements_by_css_selector("div[class*='title--3u2Hb']")
-        for i in candidateDivs:
-            print(i.text)
-            if prediction == 'P':
-                if i.text == 'プレイヤー':
-                    # i.click()
-                    self.driver.execute_script("arguments[0].click();", i)
-                    # while True:
-                    #     x = self.driver.find_elements_by_css_selector(".ui-tooltip")
-                    #     print("プレイヤー is my cand")
-                    break
-            elif prediction == 'B':
-                if i.text == 'バンカー':
-                    # i.click()
-                    self.driver.execute_script("arguments[0].click();", i)
-                    # while True:
-                    #     x = self.driver.find_elements_by_css_selector(".ui-tooltip")
-                    #     print("バンカー is my cand")
-                    break
+        counter = 0  # max try counter
+        k = False
+        while k is False:
+            if counter >= svBot.StaticVars.maxTry:
+                return False
+            k = True
+            try:
+                candidateDivs = self.driver.find_elements_by_css_selector(svBot.StaticVars.PLAYERBANKERCANDIDATEDIVS)
+            except:
+                k = False
+                counter += 1
 
+        for i in candidateDivs:
+            try:
+                try:
+                    print("working with chips")
+                    chips = self.driver.find_elements_by_css_selector(svBot.StaticVars.CHIPS)
+                    if (prediction == 'P' and i.text == 'プレイヤー') or (prediction == 'B' and i.text == 'バンカー'):
+                        for x in chips:
+                            value = int(x.text)
+                            indx = self.chipsArray.index(value)
+                            if chipcount[indx] > 0:
+                                result = self.actionChainBet(chipcount[indx], x)
+                                if result is False:
+                                    return False
+                except:
+                    return False
+                if prediction == 'P' and i.text == 'プレイヤー':
+                        print("betting for player")
+                        player = self.driver.find_element_by_css_selector(svBot.StaticVars.PLAYERBET)
+                        player.click()
+
+                elif prediction == 'B' and i.text == 'バンカー':
+                        print("betting for banker")
+                        banker = self.driver.find_element_by_css_selector(svBot.StaticVars.BANKERBET)
+                        banker.click()
+
+            except:
+                continue
+
+    def actionChainBet(self, count, x):
+        # get double button
+        try:
+            # actionchain to click chips
+            actions = ActionChains(self.driver)
+            actions.move_to_element(x)
+            actions.click(x)
+            actions.perform()
+
+            # action chain to click double button
+            doubleButton = WebDriverWait(self.driver, 4).until(
+                EC.presence_of_element_located((By.XPATH, svBot.StaticVars.DOUBLEBUTTON)))
+            actions = ActionChains(self.driver)
+            actions.move_to_element(doubleButton)
+            actions.click(doubleButton)
+            actions.perform()
+            # for i in range(count):
+        except:
+            print("actionchain failed, do something!")
+            return False
 
 
 
