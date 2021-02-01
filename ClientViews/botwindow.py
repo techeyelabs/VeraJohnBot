@@ -117,6 +117,7 @@ class BotBegin(tk.Frame):
                 bot = bt.BotInitiation()
                 result = bot.start()
                 while result is False or True:
+                    print("master returned")
                     result = bot.start()
 
 

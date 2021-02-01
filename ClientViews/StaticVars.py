@@ -29,18 +29,19 @@ class StaticVars:
     maxCount = 35
 
     # max try count in case of failure
-    maxTry = 5
+    maxTry = 3
 
     # css selectors
     CHIPS = "div[class*='chip--1itRi shadow--2_7Gl']"
     PLAYERBET = "div[class*='player--1nDyW']"
     BANKERBET = "div[class*='banker--Q8hMb']"
     PLAYERBANKERCANDIDATEDIVS = "div[class*='title--3u2Hb']"
-    BALANCEDIV = "div[class*='navbarMainBalance']"
     LOGINBUTTON = ".button[class*='button form-submit'][id='edit-submit-signin']"
     MAILINPUT = "input[class*='form-text required'][id='signin-mail']"
     PASSINPUT = "input[class*='form-text required'][id='signin-pass']"
     TABLES = "div[class*='TableName--2WO05']"
+    CLICABLEPAUSEOVERLAY = "div[class*='clickable--3IFrf']"
+    PROMPT = "a[class*='lightboxClose']"
 
     # xpaths
     DOUBLEBUTTON = "//button[contains(@class,'button--3h5xe buttonSizeDefault--3mQ1i buttonStateDefault--3rSF6 buttonLabelPositionRight--w4wqn buttonIconPositionLeft--2FL2w buttonThemeDanger--3YUsK buttonModeDesktop--i3Cpv')]"
@@ -50,3 +51,4 @@ class StaticVars:
     IFRAME_1 = "//iframe[contains(@src,'/game/baccarat-lobby-paris/frame')]"
     IFRAME_2 = "//iframe[contains(@name,'innergame')]"
     IFRAME_3 = "//iframe[contains(@name,'EVO_GAME')]"
+    NAVA = "//div[contains(@class,'cash-balance')]"
