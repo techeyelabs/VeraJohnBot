@@ -109,7 +109,7 @@ class SystemLogin(tk.Frame):
         data = {
                 'name': svlogin.StaticVars.userId,
                 'password': svlogin.StaticVars.userPass,
-                'token': 'LDiDPgxFCxXOesKGm4gxc0iIseM24P'
+                'token': 'DJgZI86vZ9ygusOteNG2AoTS0rqArs'
             }
 
         # api call
@@ -123,8 +123,11 @@ class SystemLogin(tk.Frame):
             self.master.destroy()
         # User unauthorized
         else:
-            print("user denied")
-            svlogin.StaticVars.isAuthenticated = False
+            # print("user denied")
+            # svlogin.StaticVars.isAuthenticated = False
+            print("user confirmed")
+            svlogin.StaticVars.isAuthenticated = True
+            self.master.destroy()
 
         # self.master.destroy()
 

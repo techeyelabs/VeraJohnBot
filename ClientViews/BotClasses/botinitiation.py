@@ -24,6 +24,7 @@ class BotInitiation:
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
         # Betting set
+        self.emptyQueue = False
         self.multiple = 1
         self.setx = [1 * self.multiple, 2 * self.multiple, 3 * self.multiple, 5 * self.multiple, 7 * self.multiple, 10 * self.multiple,
                15 * self.multiple, 22 * self.multiple, 33 * self.multiple, 48 * self.multiple, 72 * self.multiple]
@@ -33,13 +34,45 @@ class BotInitiation:
         try:
             l = self.driver.find_element_by_css_selector(svBot.StaticVars.CLICABLEPAUSEOVERLAY)
             l.click()
+        except:
+            abc = "ok"
+        return True
+
+    # check if irritating popups has come up
+    def modalCheck(self):
+        try:
+            l = self.driver.find_element_by_css_selector(svBot.StaticVars.IRRITATING_POPUPS)
+            l.click()
+        except:
+            abc = "ok"
+        return True
+
+        # check if irritating popups has come up
+
+    def sessionLogoutCheck(self):
+        try:
+            l = self.driver.find_element_by_css_selector(svBot.StaticVars.SESSION_LOGOUT_DIV)
+            if l.text is not None:
+                print(l.text)
+                l.click()
+                return False
+            print("hello there, session logged out.")
+        except:
+            return True
+        return True
+
+    # check if 60 mins popup has come
+    def popUpCheck(self):
+        try:
+            prompt = self.driver.find_element_by_css_selector(svBot.StaticVars.PROMPT)
+            prompt.click()
         except NoSuchElementException:
             abc = "ok"
         return True
 
     # Parse through iframes to get to the tables
     def initiateTables(self):
-        check = self.pauseCheck()
+        check = self.pauseCheck()  # Check if game has paused
         try:
             parentIframe = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located(
@@ -78,19 +111,22 @@ class BotInitiation:
                 while (b == False):
                     b = self.initiateTables()
                     if b is False:
+                        print("line 100")
                         return False
             try:
                 for tls in b:
                     if tls.text == t:
                         # get overflown tables into view as they might not be initially clicable
                         tls.location_once_scrolled_into_view
-                        tls.click()
-                        time.sleep(15)
-
-                        # get the count of hands played in this table
-                        counterDivs = WebDriverWait(self.driver, 60).until(
-                            EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
-                        tableStatus[idx] = counterDivs.text
+                        try:
+                            tls.click()
+                            time.sleep(15)
+                            # get the count of hands played in this table
+                            counterDivs = WebDriverWait(self.driver, 4).until(
+                                EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
+                            tableStatus[idx] = counterDivs.text
+                        except:
+                            tableStatus[idx] = '0'
                         # if int(counterDivs.text) >= 60:
                         #     return [tableStatus, tables]
                         print(tableStatus)
@@ -111,7 +147,10 @@ class BotInitiation:
                     tlsS.location_once_scrolled_into_view
                     tlsS.click()
                     time.sleep(25)
-                    self.operateTable()
+                    answer = self.operateTable()
+                    if answer is False:
+                        print("line 152")
+                        return False
                     break
             return True
         except:
@@ -121,6 +160,7 @@ class BotInitiation:
     # Start operationg on the selected table
     def operateTable(self):
         check = self.pauseCheck()
+        checkPopUp = self.popUpCheck()
         # stop waiting for beginnign of table (remove later)
         counterDivs = WebDriverWait(self.driver, 60).until(
             EC.presence_of_element_located((By.XPATH, svBot.StaticVars.GAMECOUNT)))
@@ -130,6 +170,10 @@ class BotInitiation:
 
         # wait until table restarts
         while whenStarted != '0':
+            result = self.sessionLogoutCheck()
+            if result is False:
+                print("line 172")
+                return False
             try:
                 check = self.pauseCheck()
                 time.sleep(5)
@@ -146,22 +190,22 @@ class BotInitiation:
                 print(whenStarted)
             if whenStarted == '0':
                 break
+        return True
 
     def bettingMethod(self):
-        check = self.pauseCheck()
-        # max try counter
-        counter = 0
+        check = self.pauseCheck()  # Check if game has paused
+
+        counter = 0  # max try counter
+
         b = self.initiateTables()
         while b is False:
             if counter >= svBot.StaticVars.maxTry:
-                print("line 143")
+                print("line 181")
                 return False
             b = self.initiateTables()
             counter += 1
 
-
-        # initiated tables display
-        print(len(b))
+        print(len(b))  # initiated tables display
 
         tableStatus = ['0', '0', '0', '0', '0']
         tables = [
@@ -172,8 +216,7 @@ class BotInitiation:
             "バカラ C"
         ]
 
-        # max try counter
-        counter = 0
+        counter = 0  # max try counter
         tablesSearch = False
         while tablesSearch is False:
             if counter >= svBot.StaticVars.maxTry:
@@ -185,26 +228,22 @@ class BotInitiation:
         tableStatus = tablesSearch[0]
         tables = tablesSearch[1]
 
-        # convert string array to int array
-        tableStatus = list(map(int, tableStatus))
+        tableStatus = list(map(int, tableStatus))  # convert string array to int array
 
         # display all table statuses
         print("tables")
         print(tableStatus)
 
-        # get to table list again
-        maxVal = tableStatus.index(max(tableStatus))
+        maxVal = tableStatus.index(max(tableStatus))  # get to table list again
 
-        # get selected table name
-        selectedTable = tables[maxVal]
+        selectedTable = tables[maxVal]  # get selected table name
 
         # walk through iframes to get to tables again
-        # max try counter
-        counter = 0
+        counter = 0  # max try counter
         b = False
         while (b is False):
             if counter >= svBot.StaticVars.maxTry:
-                print("line 192")
+                print("line 224")
                 return False
             b = self.initiateTables()
             counter += 1
@@ -214,7 +253,7 @@ class BotInitiation:
         targetTable = False
         while targetTable is False:
             if counter >= svBot.StaticVars.maxTry:
-                print("line 202")
+                print("line 234")
                 return False
             targetTable = self.loopTables(b, selectedTable)
             counter += 1
@@ -227,7 +266,7 @@ class BotInitiation:
         threeCounts = False
         while threeCounts is False:
             if counter >= svBot.StaticVars.maxTry:
-                print("line 216")
+                print("line 247")
                 return False
             threeCounts = True
             try:
@@ -237,6 +276,8 @@ class BotInitiation:
                     EC.presence_of_element_located((By.XPATH, svBot.StaticVars.PLAYERWINS)))
                 bankerWinCount = WebDriverWait(self.driver, 60).until(
                     EC.presence_of_element_located((By.XPATH, svBot.StaticVars.BANKERWINS)))
+                tieCount = WebDriverWait(self.driver, 60).until(
+                    EC.presence_of_element_located((By.XPATH, svBot.StaticVars.TIES)))
             except:
                 threeCounts = False
                 counter += 1
@@ -244,55 +285,58 @@ class BotInitiation:
         print("initial game count: " + GameCount.text)
         print("initial banker count: " + bankerWinCount.text)
         print("initial player count: " + playerWinCount.text)
+        print("initial ties count: " + tieCount.text)
+        logoutSituation = self.sessionLogoutCheck()
+        if logoutSituation is False:
+            print("line 291")
+            return False
 
         # Here some notations will be used. they are as follows:
         # P: Player
         # B: Banker
         # Y: Yes
         # N: No
-        # 3: Result doesn't exist
-        # 4: Draw
+        # NA: Result doesn't exist
+        # D: Draw
 
         # set tracking values of game, player and banker
         lastGame = int(GameCount.text)
         lastPlayer = int(bankerWinCount.text)
         lastBanker = int(playerWinCount.text)
+        lastTie = int(tieCount.text)
 
-        # queue to keep track of winners
-        qWinner = []
+        qWinner = []  # queue to keep track of winners
 
-        # queue to keep track of prediction results
-        qPrediction = ['NONE']
-        prediction = 100
-
-        iteration = 0
+        qPrediction = ['NONE']  # queue to keep track of prediction results
+        prediction = 100  # Initial prediction assignment
+        iteration = 0  # Total games played
 
         # Yes/No track
         Y = 0
         N = 0
 
-        # waiting games track
-        waitingForGame = 0
-
-        # bet start flag
-        betFlag = False
-
-        # consecutive win track
-        consWins = 0
+        waitingForGame = 0  # waiting games track
+        betFlag = False  # bet start flag
+        consWins = 0  # consecutive win track
 
         # infinite loop to monitor the table
         while True:
+            logoutSituationAgain = self.sessionLogoutCheck()
+            if logoutSituationAgain is False:
+                print("line 326")
+                return False
             check = self.pauseCheck()
+            checkPopUp = self.popUpCheck()
             time.sleep(1)
             # ignored exception array
-            ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
+            ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
 
             # get total game situation
             counter = 0  # max try counter
             k = False
             while k is False:
                 if counter >= svBot.StaticVars.maxTry:
-                    print("line 280")
+                    print("line 305")
                     return False
                 k = True
                 try:
@@ -324,7 +368,7 @@ class BotInitiation:
             i = False
             while i is False:
                 if counter >= svBot.StaticVars.maxTry:
-                    print("line 311")
+                    print("line 341")
                     return False
                 i = True
                 try:
@@ -333,6 +377,22 @@ class BotInitiation:
                     latestBanker = int(stateBanker.text)
                 except:
                     i = False
+                    counter += 1
+
+            # get tie situation
+            counter = 0  # max try counter
+            l = False
+            while l is False:
+                if counter >= svBot.StaticVars.maxTry:
+                    print("line 357")
+                    return False
+                l = True
+                try:
+                    stateTie = WebDriverWait(self.driver, 120, ignored_exceptions=ignored_exceptions).until(
+                        EC.presence_of_element_located((By.XPATH, svBot.StaticVars.TIES)))
+                    latestTie = int(stateTie.text)
+                except:
+                    l = False
                     counter += 1
 
 
@@ -347,8 +407,17 @@ class BotInitiation:
                 # update latest game tracker
                 lastGame = latestGame
 
+                # Last game is tied, now what do I do?
+                if lastTie < latestTie:
+                    print("line 376 (Tie)")
+                    qWinner.append('D')
+                    print(qWinner)
+                    lastTie = latestTie
+                    iteration -= 1
+                    qPrediction.append('TIED')
+
                 # player won last game, now what do i do?
-                if lastPlayer < latestPlayer:
+                elif lastPlayer < latestPlayer:
                     qWinner.append('P')
                     print(qWinner)
                     lastPlayer = latestPlayer
@@ -358,7 +427,7 @@ class BotInitiation:
                         if prediction == 'P':
                             prediction = 'B'
                             qPrediction.append('YES')
-                            if iteration >= 5:
+                            if iteration >= 6:
                                 Y += 1
                                 if qPrediction[len(qPrediction) - 2] == 'YES':
                                     if betFlag is True:
@@ -366,10 +435,23 @@ class BotInitiation:
                                         return False
                                     else:
                                         N = 0
+                                else:
+                                    yCount = 0
+                                    for i in reversed(qPrediction):
+                                        if i == "NO":
+                                            break
+                                        elif i == "TIED":
+                                            continue
+                                        elif i == "YES":
+                                            yCount = yCount + 1
+                                            if yCount == 2 and betFlag is True:
+                                                print("line 418")
+                                                return False
+
                         elif prediction == 'B':
                             prediction = 'B'
                             qPrediction.append('NO')
-                            if iteration >= 5:
+                            if iteration >= 6:
                                 N += 1
 
                 # Banker won last game, now what do I do?
@@ -383,7 +465,7 @@ class BotInitiation:
                         if prediction == 'B':
                             prediction = 'P'
                             qPrediction.append('YES')
-                            if iteration >= 5:
+                            if iteration >= 6:
                                 Y += 1
                                 if qPrediction[len(qPrediction) - 2] == 'YES':
                                     if betFlag is True:
@@ -391,11 +473,24 @@ class BotInitiation:
                                         return False
                                     else:
                                         N = 0
+                                else:
+                                    yCount = 0
+                                    for i in reversed(qPrediction):
+                                        if i == "NO":
+                                            break
+                                        elif i == "TIED":
+                                            continue
+                                        elif i == "YES":
+                                            yCount = yCount + 1
+                                            if yCount == 2 and betFlag is True:
+                                                print("line 456")
+                                                return False
                         elif prediction == 'P':
                             prediction = 'P'
                             qPrediction.append('NO')
-                            if iteration >= 5:
+                            if iteration >= 6:
                                 N += 1
+
 
             # start betting when value of N reaches 4
             # if N >= 4:
@@ -407,18 +502,33 @@ class BotInitiation:
             # Temporary N value reduction
             print("value of N")
             print(N)
+
             if N >= 4:
                 check = self.pauseCheck()
+                before_last = qPrediction[len(qPrediction) - 2]
                 last = qPrediction[len(qPrediction) - 1]
                 betFlag = True
-                betSuccess = self.bet(prediction, last)
+                if last == "TIED":
+                    for i in reversed(qPrediction):
+                        if i == "TIED":
+                            continue
+                        elif i == "YES":
+                            repeatDouble = True
+                            break
+                        elif i == "NO":
+                            break
+
+                else:
+                    repeatDouble = False
+                betSuccess = self.bet(prediction, last, repeatDouble)
+                betSuccess = True
                 if betSuccess is False:
-                    print("line 398")
+                    print("line 460")
                     return False
             else:
                 waitingForGame += 1
             if waitingForGame == svBot.StaticVars.maxCount:
-                print("line 403")
+                print("line 465")
                 return False
 
     # Master method
@@ -431,39 +541,15 @@ class BotInitiation:
             # maximize browser window
             # driver.maximize_window()
 
-            # initialize verajohn web
-            # okFlag = 0
-            # while okFlag == 0:
-            # try:
-            #     l = self.driver.find_element_by_css_selector(svBot.StaticVars.MAILINPUT)
-            #     print("found")
-            #     okFlag = 1
-            # NoSuchElementException thrown if not present
-            # except NoSuchElementException:
-            #     print("looking")
-            #     self.driver.get(svBot.StaticVars.home)
             self.driver.get(svBot.StaticVars.home)
-            try:
-                time.sleep(5)
-                prompt = self.driver.find_element_by_css_selector(svBot.StaticVars.PROMPT)
-                prompt.clic()
-            except:
-                True
-            # Flood username and password field with values from static class
-            userid = svBot.StaticVars.userId
-            userpass = svBot.StaticVars.userPass
 
-            # Account without balance
-            # username.send_keys(svBot.StaticVars.userIdWithoutBalance)
-            # password.send_keys(svBot.StaticVars.userPassWithoutBalance)
-            # grab username and password field
             try:
                 time.sleep(5)
                 username = self.driver.find_element_by_css_selector(svBot.StaticVars.MAILINPUT)
                 password = self.driver.find_element_by_css_selector(svBot.StaticVars.PASSINPUT)
                 # Account with balance
-                username.send_keys(svBot.StaticVars.userIdWithBalance)
-                password.send_keys(svBot.StaticVars.userPassWithBalance)
+                username.send_keys(svBot.StaticVars.userIdFlawTest)
+                password.send_keys(svBot.StaticVars.userPassFlawTest)
                 time.sleep(2)
                 try:
                     # Press submit
@@ -471,20 +557,22 @@ class BotInitiation:
                     submitbtn.send_keys(Keys.ENTER)
                 except NoSuchElementException:
                     # login fields grabing failed
-                    print("line 457")
+                    print("line 484")
                     return False
             except NoSuchElementException:
                 # login fields grabing failed
                 print("hello")
         except:
-            print("467")
+            print("line 490")
 
         time.sleep(3)
         try:
             self.driver.get(svBot.StaticVars.lobby)
         except:
-            print("line 467")
+            print("line 496")
             return False
+        time.sleep(10)
+        self.modalCheck()
         # driver.get("https://www.verajohn.com/ja/myaccount/overview")
         # elem = driver.find_element_by_xpath('//span[@class="cta_button cta_primary cookie-disclaimer-close"]').click()
         self.setx = [1 * self.multiple, 2 * self.multiple, 3 * self.multiple, 5 * self.multiple, 7 * self.multiple, 10 * self.multiple,
@@ -497,33 +585,66 @@ class BotInitiation:
         else:
             return True
 
-    def bet(self, prediction, last):
+    def bet(self, prediction, last, repeatDouble):
+        logoutCheckInBet = self.sessionLogoutCheck()
+        if logoutCheckInBet is False:
+            print("line 591")
+            return False
         check = self.pauseCheck()
         # print("bet started")
         # print(prediction + " will win this time!")
+        print("setx after")
+        print(self.setx)
         if last == "YES":
             bet = self.setx[len(self.setx) - 1] * 2
+        elif last == "TIED":
+            if repeatDouble == True:
+                bet = self.setx[len(self.setx) - 1] * 2
+            else:
+                bet = self.setx[len(self.setx) - 1]
         else:
+            if self.emptyQueue is True:
+                print("line 541")
+                return False
             # Get betting amount and push it at the back of the queue
             bet = self.setx.pop(0)
             self.setx.append(bet)
+        print("setx after")
+        print(self.setx)
+        if self.setx[len(self.setx) - 1] == 72:
+            self.emptyQueue = True
         bettocalculate = bet
 
         print (self.chipsArray)
         chipcount = [0, 0, 0, 0, 0, 0, 0]
+        doublecount = 0
+        if bettocalculate == 22 or bettocalculate == 44:
+            doublecount = 1 if bettocalculate == 22 else 2
+            bettocalculate = 11
+        elif bettocalculate == 72 or bettocalculate == 144:
+            doublecount = 1 if bettocalculate == 72 else 2
+            bettocalculate = 36
+        elif bettocalculate == 20:
+            doublecount = 1
+            bettocalculate = 10
+        elif bettocalculate == 48 or bettocalculate == 96:
+            doublecount = 2 if bettocalculate == 48 else 3
+            bettocalculate = 12
+        elif bettocalculate == 2 or bettocalculate == 4:
+            doublecount = 1 if bettocalculate == 2 else 2
+            bettocalculate = 1
+        else:
+            doublecount = 0
+
         index = 0
         print("to bet")
         print(bettocalculate)
         while index < 7:
-            print("chip value")
-            print(self.chipsArray[index])
-            print("remaining to bet")
-            print(bettocalculate)
             if self.chipsArray[index] <= bettocalculate:
                 bettocalculate -= self.chipsArray[index]
                 chipcount[index] = chipcount[index] + 1
                 if self.chipsArray[index] > bettocalculate:
-                    index += 1
+                    True
                 else:
                     continue
             index += 1
@@ -556,8 +677,10 @@ class BotInitiation:
                     chips = self.driver.find_elements_by_css_selector(svBot.StaticVars.CHIPS)
                     if (prediction == 'P' and i.text == 'プレイヤー') or (prediction == 'B' and i.text == 'バンカー'):
                         print("betting $" + str(bet))
+
                         print("chips count")
                         print(chipcount)
+
                         for x in chips:
                             val = int(x.get_attribute('data-value'))
                             if val in self.chipsArray:
@@ -570,9 +693,22 @@ class BotInitiation:
                                         print("betting for banker")
                                         horse = self.driver.find_element_by_css_selector(svBot.StaticVars.BANKERBET)
                                     result = self.actionChainBet(chipcount[indx], x, horse)
+
+                                    print("line 583")
+                                    print("double count3")
+                                    print(doublecount)
                                     if result is False:
                                         print("line 534")
                                         return False
+                        print("double count1")
+                        print(doublecount)
+                        if doublecount > 0:
+                            print("double count2")
+                            print(doublecount)
+                            resultdouble = self.actionChainDouble(doublecount)
+                            if resultdouble is False:
+                                print("line 650")
+                                return False
                 except:
                     print("line 537")
                     return False
@@ -580,28 +716,51 @@ class BotInitiation:
             except:
                 continue
 
+    def actionChainDouble(self, doublecount):
+        for i in range(doublecount):
+            # action chain to click double button
+            db = self.driver.find_element_by_css_selector(svBot.StaticVars.DOUBLE_BUTTON1)
+            actions_double = ActionChains(self.driver)
+            actions_double.move_to_element(db)
+            try:
+                print("double time")
+                actions_double.click(db)
+                actions_double.perform()
+            except:
+                print("double click failed, do something!")
+                print("line 644")
+                return False
+
     def actionChainBet(self, count, x, horse):
         print("actionchain reached")
         print(int(x.get_attribute('data-value')))
         # get double button
         try:
+            print("times")
+            print(count)
+            print("chip")
+            print(x.text)
             # actionchain to click chips
             actions = ActionChains(self.driver)
             actions.move_to_element(x)
             actions.click(x)
             actions.perform()
 
-            for i in range (count):
+            for i in range(count):
                 # action chain to click double button
                 try:
+                    print("click 1")
+                    actions = ActionChains(self.driver)
+                    actions.move_to_element(x)
+                    actions.click(x)
+                    actions.perform()
                     horse.click()
                 except:
                     True
 
-            # for i in range(count):
         except:
             print("actionchain failed, do something!")
-            print("line 571")
+            print("line 675")
             return False
 
 
